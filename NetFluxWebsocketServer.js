@@ -26,11 +26,11 @@ dropUser = function (ctx, user) {
         try {
             user.socket.close();
         } catch (e) {
-            console.log("Failed to disconnect ["+user.userName+"], attempting to terminate");
+            console.log("Failed to disconnect ["+user.id+"], attempting to terminate");
             try {
                 user.socket.terminate();
             } catch (ee) {
-                console.log("Failed to terminate ["+user.userName+"]  *shrug*");
+                console.log("Failed to terminate ["+user.id+"]  *shrug*");
             }
         }
     }
@@ -39,7 +39,7 @@ dropUser = function (ctx, user) {
         let chan = ctx.channels[chanName];
         let idx = chan.indexOf(user);
         if (idx < 0) { return; }
-        console.log("Removing ["+user.userName+"] from channel ["+chanName+"]");
+        console.log("Removing ["+user.id+"] from channel ["+chanName+"]");
         chan.splice(idx, 1);
         if (chan.length === 0) {
             console.log("Removing empty channel ["+chanName+"]");
@@ -53,20 +53,19 @@ dropUser = function (ctx, user) {
 let randName = function () { return Crypto.randomBytes(16).toString('hex'); };
 
 let handleMessage = function (ctx, user, msg) {
-    console.log(msg);
     let json = JSON.parse(msg);
     let seq = json.shift();
-    let cmd = json.shift();
-    let obj = json.shift();
+    let cmd = json[0];
+    let obj = json[1];
 
     if (cmd === 'JOIN') {
-        if (obj && !ctx.channels[obj]) {
+        if (obj.length !== 32) {
             sendMsg(ctx, user, [seq, 'ERROR', 'ENOENT', obj]);
             return;
         }
         let chanName = obj || randName();
         let chan = ctx.channels[chanName] = ctx.channels[chanName] || [];
-        chan.forEach(function (u) { sendMsg(ctx, user, [0, u.ud, 'JOIN', chanName]); });
+        chan.forEach(function (u) { sendMsg(ctx, user, [0, u.id, 'JOIN', chanName]); });
         chan.push(user);
         sendChannelMessage(ctx, chan, [user.id, 'JOIN', chanName]);
         return;

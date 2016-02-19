@@ -63,16 +63,20 @@ onJoining = function (id) {
 */
     var connect = function (websocketURL) {
         var sock = {
-            ws: new WebSocket(websocketURL),
-            seq: 1
+            ws: new WebSocket(websocketURL)
         };
+        var seq = 1;
         sock.ws.onopen = function () {
             if (window.location.hash) {
-                sock.ws.send(JSON.stringify([sock.seq++, 'JOIN', window.location.hash]));
+                sock.ws.send(JSON.stringify([seq++, 'JOIN', window.location.hash.substr(1)]));
             } else {
-                sock.ws.send(JSON.stringify([sock.seq++, 'JOIN']));
+                sock.ws.send(JSON.stringify([seq++, 'JOIN']));
             }
         };
+        var msgHandlers = [];
+        var leaveHandlers = [];
+        var joinHandlers = [];
+        var chanName;
         sock.ws.onmessage = function (evt) {
             var msg = JSON.parse(evt.data);
             if (msg[0] !== 0) {
@@ -85,16 +89,33 @@ onJoining = function (id) {
             }
             if (msg[2] === 'JOIN') {
                 if (msg[1] === sock.uid) {
-                    window.location.hash = msg[3];
+                    chanName = window.location.hash = msg[3];
                 }
+                joinHandlers.forEach(function (mh) { mh(msg); });
                 console.log('joined');
             }
             if (msg[2] === 'MSG') {
                 console.log("MSG " + JSON.stringify(msg));
+                msgHandlers.forEach(function (mh) { mh(msg); });
             }
             if (msg[2] === 'LEAVE') {
                 console.log("LEAVE " + JSON.stringify(msg));
+                leaveHandlers.forEach(function (mh) { mh(msg); });
             }
+        };
+        return {
+            sock: sock,
+            msg: function (m, cb) {
+                if (chanName) {
+                    sock.ws.send(JSON.stringify([seq++, 'MSG', chanName, m]));
+                    cb();
+                } else {
+                    cb('not connected to server');
+                }
+            },
+            onMsg: function (handler) { msgHandlers.push(handler); },
+            onLeave: function (handler) { leaveHandlers.push(handler); },
+            onJoin: function (handler) { joinHandlers.push(handler); }
         };
     };
 
@@ -106,18 +127,21 @@ onJoining = function (id) {
         var $backscroll = $('#chatflux-backscroll');
         var $entry = $('#chatflux-entry');
         var server = connect('ws://localhost:9000');
+        var logMsg = function (s) { $backscroll.val(function (i, v) { return v + '\n' + s; }); };
 
         $entry.on('keydown', function (evt) {
             if (evt.keyCode !== 13) { return; }
-            message(server, $entry.val(), function (err) {
+            server.msg($entry.val(), function (err) {
                 if (err) {
-                    $backscroll.val(function (i, val) { return val + '\n' + 'ERROR: ' + err; });
+                    logMsg('ERROR: ' + err);
                     return;
                 }
                 $entry.val('');
             });
         });
+        server.onMsg(function (msg) { logMsg('<' + msg[1] + '> ' + msg[4]); });
+        server.onLeave(function (msg) { logMsg('* ' + msg[1] + ' has left ' + msg[4]); });
+        server.onJoin(function (msg) { logMsg('* ' + msg[1] + ' has joined'); });
     };
     main();
-    //console.log(jQuery);
 });
