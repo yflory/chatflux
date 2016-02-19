@@ -14,7 +14,7 @@ app.use(Express.static(__dirname + '/'));
 app.get("/", function(req, res) { res.sendFile(__dirname + '/index.html'); });
 
 var httpServer = Http.createServer(app);
-httpServer.listen(9000, 'localhost', function(){
+httpServer.listen(9000, '::', function(){
     console.log('listening on %s', 9000);
 });
 
