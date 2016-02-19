@@ -59,7 +59,7 @@ let handleMessage = function (ctx, user, msg) {
     let obj = json[1];
 
     if (cmd === 'JOIN') {
-        if (obj.length !== 32) {
+        if (obj && obj.length !== 32) {
             sendMsg(ctx, user, [seq, 'ERROR', 'ENOENT', obj]);
             return;
         }
