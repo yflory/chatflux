@@ -2,7 +2,12 @@
 let Crypto = require('crypto');
 let WebSocket = require('ws');
 
+let LAG_MAX_BEFORE_DISCONNECT = 30000;
+let LAG_MAX_BEFORE_PING = 15000;
+
 let dropUser;
+
+let now = function () { return (new Date()).getTime(); };
 
 let sendMsg = function (ctx, user, msg) {
     try {
@@ -57,6 +62,9 @@ let handleMessage = function (ctx, user, msg) {
     let seq = json.shift();
     let cmd = json[0];
     let obj = json[1];
+
+    user.timeOfLastMessage = now();
+    user.pingOutstanding = false;
 
     if (cmd === 'JOIN') {
         if (obj && obj.length !== 32) {
@@ -113,12 +121,25 @@ let run = module.exports.run = function (socketServer) {
         users: {},
         channels: {}
     };
+    setInterval(function () {
+        Object.keys(ctx.users).forEach(function (userId) {
+            let u = ctx.users[userId];
+            if (now() - u.timeOfLastMessage > LAG_MAX_BEFORE_DISCONNECT) {
+                dropUser(ctx, u);
+            } else if (!u.pingOutstanding && now() - u.timeOfLastMessage > LAG_MAX_BEFORE_PING) {
+                sendMsg(ctx, u, [0, 'PING', now()]);
+                u.pingOutstanding = true;
+            }
+        });
+    }, 5000);
     socketServer.on('connection', function(socket) {
         let conn = socket.upgradeReq.connection;
         let user = {
             addr: conn.remoteAddress + '|' + conn.remotePort,
             socket: socket,
-            id: randName()
+            id: randName(),
+            timeOfLastMessage: now(),
+            pingOutstanding: false
         };
         ctx.users[user.id] = user;
         sendMsg(ctx, user, [0, 'IDENT', user.id]);

@@ -1,11 +1,11 @@
 define(['nf_facade.js',
         'nf_webchannel.js'], function (Facade, WebChannel) {
-    
+
     return function WebSocketService() {
         var module = {exports: {}};
         var sock;
-        
-        
+
+
         // Connect to the WebSocket server
         var connect = module.exports.connect = function (url) {
             return new Promise(function(resolve, reject) {
@@ -46,6 +46,11 @@ define(['nf_facade.js',
                             sock.uid = msg[2];
                             return;
                         }
+                        if (msg[1] === 'PING') {
+                            msg[1] = 'PONG';
+                            sock.ws.send(JSON.stringify(msg));
+                            return;
+                        }
                         if (msg[2] === 'JOIN') {
                             if (msg[1] === sock.uid) {
                                 chanName = window.location.hash = msg[3];
@@ -67,10 +72,10 @@ define(['nf_facade.js',
                 } catch(e) {
                     reject(e);
                 }
-                
+
             });
         }
-        
+
         // Send a message using the socket
         var send = module.exports.send = function(channel, message) {
             return new Promise(function(resolve, reject) {
@@ -97,8 +102,8 @@ define(['nf_facade.js',
                 return false;
             }
         };
-        
+
         return module.exports;
     }
-    
+
 });
