@@ -1,12 +1,6 @@
 define(function () {
 
-
-    var module = {exports: {}};
-
-    var connector;
-    var channelId;
-
-    var send = module.exports.send = function(message) {
+    var send = function(connector, channelId, message) {
         return new Promise(function(resolve, reject) {
             connector.send(channelId, message).then(function() {
                 resolve();
@@ -18,7 +12,7 @@ define(function () {
     }
 
     // Leave the session
-    var leave = module.exports.leave = function() {
+    var leave = function(connector) {
         return new Promise(function(resolve, reject) {
             try {
                 connector.disconnect();
@@ -29,10 +23,16 @@ define(function () {
         });
     }
 
-    var create = module.exports.create = function(name, connect) {
-        channelId = name;
-        connector = connect;
+    var create = function(name, connect) {
+        var channelId = name;
+        var connector = connect;
+        return {
+            send: function(message) { return send(connector, channelId, message); },
+            leave: function() { return leave(connector); }
+        }
     }
-    return module.exports;
+    return {
+        create: create
+    };
 
 });

@@ -1,24 +1,24 @@
 define(function () {
-    
-    var module = {exports: {}};
 
-    var connector;
-
-    var join = module.exports.join = function (channel) {
+    var join = function (connector, channel) {
         return new Promise(function(resolve, reject) {
             connector.join(channel).then(function(wc) {
                 resolve(wc);
             }, function(error) {
                 reject(error);
             });
-            
         });
     }
 
-    var create = module.exports.create = function (connect) {
-        connector = connect;
+    var create = function (connect) {
+        var connector = connect;
+        return {
+            join: function (chan) { return join(connector, chan); }
+        };
     }
 
-    return module.exports;
-    
+    return {
+        create: create
+    };
+
 });

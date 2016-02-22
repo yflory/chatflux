@@ -1,5 +1,6 @@
-define(['nf_facade.js',
-        'nf_webchannel.js'], function (Facade, WebChannel) {
+define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
+        'nf_facade.js',
+        'nf_webchannel.js'], function (ReconnectingWebSocket, Facade, WebChannel) {
 
     var module = {exports: {}};
     var sock;
@@ -8,12 +9,12 @@ define(['nf_facade.js',
     var connect = module.exports.connect = function (url) {
         return new Promise(function(resolve, reject) {
             sock = {
-                ws: new WebSocket(url),
+                ws: new ReconnectingWebSocket(url),
                 seq: 1
             };
             sock.ws.onopen = function () {
-                Facade.create(module.exports);
-                resolve(Facade);
+                var facade = Facade.create(module.exports);
+                resolve(facade);
             };
             sock.ws.onerror = reject;
         });
@@ -33,7 +34,7 @@ define(['nf_facade.js',
                 } else {
                     sock.ws.send(JSON.stringify([sock.seq++, 'JOIN']));
                 }
-                var wc = WebChannel;
+                var wc;
                 sock.ws.onmessage = function(evt) {
                     var msg = JSON.parse(evt.data);
 
@@ -53,7 +54,7 @@ define(['nf_facade.js',
                     if (msg[2] === 'JOIN') {
                         if (msg[1] === sock.uid) {
                             chanName = window.location.hash = msg[3];
-                            wc.create(chanName, module.exports);
+                            wc = WebChannel.create(chanName, module.exports);
                             resolve(wc);
                         }
                         if(wc && typeof wc.onJoining !== "undefined") { wc.onJoining(msg); }
