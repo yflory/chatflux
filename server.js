@@ -6,6 +6,7 @@ var Http = require('http');
 //var Https = require('https');
 var Fs = require('fs');
 var WebSocketServer = require('ws').Server;
+var Storage = require('./lvl');
 //var ChainPadSrv = require('./ChainPadSrv');
 
 var app = Express();
@@ -18,4 +19,6 @@ httpServer.listen(9000, '::', function(){
     console.log('listening on %s', 9000);
 });
 
-require('./NetFluxWebsocketServer').run(new WebSocketServer({ server: httpServer }));
+Storage.create({}, function (store) {
+    require('./NetFluxWebsocketServer').run(store, new WebSocketServer({ server: httpServer }));
+});

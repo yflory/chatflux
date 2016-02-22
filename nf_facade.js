@@ -11,9 +11,10 @@ define(function () {
     }
 
     var create = function (connect) {
-        var connector = connect;
         return {
-            join: function (chan) { return join(connector, chan); }
+            onPeerMessage: function () { }, // TODO
+            _connector: connect,
+            join: function (chan) { return join(connect, chan); }
         };
     }
 

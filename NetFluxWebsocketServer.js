@@ -4,6 +4,7 @@ let WebSocket = require('ws');
 
 let LAG_MAX_BEFORE_DISCONNECT = 30000;
 let LAG_MAX_BEFORE_PING = 15000;
+let HISTORY_KEEPER_ID = "_HISTORY_KEEPER_";
 
 let dropUser;
 
@@ -22,6 +23,9 @@ let sendMsg = function (ctx, user, msg) {
 let sendChannelMessage = function (ctx, channel, msgStruct) {
     msgStruct.unshift(0);
     channel.forEach(function (user) { sendMsg(ctx, user, msgStruct); });
+    if (msgStruct[2] === 'MSG') {
+        ctx.store.message(channel.id, JSON.stringify(msgStruct), function () { });
+    }
 };
 
 dropUser = function (ctx, user) {
@@ -55,6 +59,10 @@ dropUser = function (ctx, user) {
     });
 };
 
+let getHistory = function (ctx, channelName, handler) {
+    ctx.store.getMessages(channelName, function (msgStr) { handler(JSON.parse(msgStr)); });
+};
+
 let randName = function () { return Crypto.randomBytes(16).toString('hex'); };
 
 let handleMessage = function (ctx, user, msg) {
@@ -73,12 +81,25 @@ let handleMessage = function (ctx, user, msg) {
         }
         let chanName = obj || randName();
         let chan = ctx.channels[chanName] = ctx.channels[chanName] || [];
+        chan.id = chanName;
+        sendMsg(ctx, user, [0, HISTORY_KEEPER_ID, 'JOIN', chanName]);
         chan.forEach(function (u) { sendMsg(ctx, user, [0, u.id, 'JOIN', chanName]); });
         chan.push(user);
         sendChannelMessage(ctx, chan, [user.id, 'JOIN', chanName]);
         return;
     }
     if (cmd === 'MSG') {
+        if (obj === HISTORY_KEEPER_ID) {
+            let parsed;
+            try { parsed = JSON.parse(json[2]); } catch (err) { return; }
+            if (parsed[0] === 'GET_HISTORY') {
+                console.log('getHistory ' + parsed[1]);
+                getHistory(ctx, parsed[1], function (msg) {
+                    sendMsg(ctx, user, [0, HISTORY_KEEPER_ID, 'MSG', user.id, JSON.stringify(msg)]);
+                });
+            }
+            return;
+        }
         if (obj && !ctx.channels[obj] && !ctx.users[obj]) {
             sendMsg(ctx, user, [seq, 'ERROR', 'ENOENT', obj]);
             return;
@@ -116,10 +137,11 @@ let handleMessage = function (ctx, user, msg) {
     }
 };
 
-let run = module.exports.run = function (socketServer) {
+let run = module.exports.run = function (storage, socketServer) {
     let ctx = {
         users: {},
-        channels: {}
+        channels: {},
+        store: storage
     };
     setInterval(function () {
         Object.keys(ctx.users).forEach(function (userId) {

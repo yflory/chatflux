@@ -10,7 +10,7 @@ require(['nf_websocketservice.js',
     // This is a temporary hack which talks directly to the server.
     var connect = function (url) {
         var channel = window.location.hash.substring(1) || null;
-        
+
         // Connect to the WebSocket server
         Netflux.connect(url).then(function(facade) {
             // Join a WebChannel
@@ -21,10 +21,15 @@ require(['nf_websocketservice.js',
                 wc.onJoining = onJoining;
                 wc.onLeaving = onLeaving;
 
+                // Request the history of this channel.
+
+                facade._connector.send('_HISTORY_KEEPER_',
+                    JSON.stringify(['GET_HISTORY', wc.id]));
+
             }, function(error) {
                 console.error(error);
             });
-            
+
         }, function(error) {
             console.error(error);
         });
@@ -73,7 +78,7 @@ require(['nf_websocketservice.js',
                 $entry.val('');
             });
         });
-        
+
         var send = function (msg, cb) {
             if(typeof webchannel !== "undefined") {
                 webchannel.send(msg);

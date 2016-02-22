@@ -8,7 +8,7 @@ define(function () {
                 reject(error);
             });
         });
-        
+
     }
 
     // Leave the session
@@ -24,11 +24,10 @@ define(function () {
     }
 
     var create = function(name, connect) {
-        var channelId = name;
-        var connector = connect;
         return {
-            send: function(message) { return send(connector, channelId, message); },
-            leave: function() { return leave(connector); }
+            id: name,
+            send: function(message) { return send(connect, name, message); },
+            leave: function() { return leave(connect); }
         }
     }
     return {

@@ -8,7 +8,7 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
     // Connect to the WebSocket server
     var connect = module.exports.connect = function (url) {
         return new Promise(function(resolve, reject) {
-            sock = {
+            module.exports._sock = sock = {
                 ws: new ReconnectingWebSocket(url),
                 seq: 1
             };
