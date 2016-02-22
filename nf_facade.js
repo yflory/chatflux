@@ -1,12 +1,12 @@
 define(function () {
     
     var module = {exports: {}};
-    
-    
-    var join = module.exports.join = function (channel, options) {
-        var connector = options.connector;
+
+    var connector;
+
+    var join = module.exports.join = function (channel) {
         return new Promise(function(resolve, reject) {
-            connector.join(channel, options).then(function(wc) {
+            connector.join(channel).then(function(wc) {
                 resolve(wc);
             }, function(error) {
                 reject(error);
@@ -14,7 +14,11 @@ define(function () {
             
         });
     }
-    
+
+    var create = module.exports.create = function (connect) {
+        connector = connect;
+    }
+
     return module.exports;
     
 });

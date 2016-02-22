@@ -10,13 +10,11 @@ require(['nf_websocketservice.js',
     // This is a temporary hack which talks directly to the server.
     var connect = function (url) {
         var channel = window.location.hash.substring(1) || null;
-        var netflux = new Netflux();
-        var options = {connector : netflux};
         
         // Connect to the WebSocket server
-        netflux.connect(url).then(function(facade) {
+        Netflux.connect(url).then(function(facade) {
             // Join a WebChannel
-            facade.join(channel, options).then(function(wc) {
+            facade.join(channel).then(function(wc) {
 
                 webchannel = wc;
                 wc.onMessage = onMessage; // On receiving message
