@@ -1,6 +1,7 @@
 define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
         'nf_facade.js',
-        'nf_webchannel.js'], function (ReconnectingWebSocket, Facade, WebChannel) {
+        'nf_webchannel.js',
+        'nf_peer.js'], function (ReconnectingWebSocket, Facade, WebChannel, Peer) {
 
     var module = {exports: {}};
     var sock;
@@ -25,6 +26,18 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
         delete this;
     }
 
+    var findPeerById = function(peerId, peers) {
+        var index;
+        for(var i=0; i<peers.length; i++) {
+            if(peers[i].name === peerId) {
+                index = i;
+                break;
+            }
+        }
+        var peer = peers[i] || Peer.create("Unknown", wc, module.exports); 
+        return [peer, index];
+    }
+
     // Create a WebChannel
     var join = module.exports.join = function (channel, options) {
         return new Promise(function(resolve, reject) {
@@ -34,7 +47,7 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
                 } else {
                     sock.ws.send(JSON.stringify([sock.seq++, 'JOIN']));
                 }
-                var wc;
+                var wc = WebChannel.create(channel, module.exports);
                 sock.ws.onmessage = function(evt) {
                     var msg = JSON.parse(evt.data);
 
@@ -52,21 +65,30 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
                         return;
                     }
                     if (msg[2] === 'JOIN') {
+                        var peer = Peer.create(msg[1], wc, module.exports);
+                        wc.peers.push(peer);
                         if (msg[1] === sock.uid) {
                             chanName = window.location.hash = msg[3];
-                            wc = WebChannel.create(chanName, module.exports);
+                            wc.id = chanName;
                             resolve(wc);
+                            console.log('joined');
                         }
-                        if(wc && typeof wc.onJoining !== "undefined") { wc.onJoining(msg); }
-                        console.log('joined');
+                        else {
+                            if(wc && typeof wc.onJoining !== "undefined") { wc.onJoining(peer, wc); }
+                        }
                     }
                     if (msg[2] === 'MSG') {
+                        var peer = findPeerById(msg[1], wc.peers);
                         console.log("MSG " + JSON.stringify(msg));
-                        if(wc && typeof wc.onMessage !== "undefined") { wc.onMessage(msg); }
+                        if(wc && typeof wc.onMessage !== "undefined") { wc.onMessage(peer[0], wc, msg); }
                     }
                     if (msg[2] === 'LEAVE') {
+                        var peer = findPeerById(msg[1], wc.peers);
+                        if(peer[1]) {
+                            wc.peers.splice(peer[1], 1);
+                        }
                         console.log("LEAVE " + JSON.stringify(msg));
-                        if(wc && typeof wc.onLeaving !== "undefined") { wc.onLeaving(msg); }
+                        if(wc && typeof wc.onLeaving !== "undefined") { wc.onLeaving(peer[0], wc); }
                     }
                 }
             } catch(e) {

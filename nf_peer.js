@@ -8,30 +8,15 @@ define(function () {
                 reject(error);
             });
         });
-        
     }
 
-    // Leave the session
-    var leave = function(connector) {
-        return new Promise(function(resolve, reject) {
-            try {
-                connector.disconnect();
-                resolve();
-            } catch (e) {
-                reject(e);
-            }
-        });
-    }
-
-    var create = function(name, connect) {
+    var create = function(name, webchannel, connect) {
         var id = name;
+        var webchannel = webchannel;
         var connector = connect;
-        var peers = [];
         return {
             send: function(message) { return send(connector, id, message); },
-            leave: function() { return leave(connector); },
-            peers: peers,
-            id: id
+            name: name
         }
     }
     return {

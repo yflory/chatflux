@@ -32,26 +32,16 @@ require(['nf_websocketservice.js',
 
     var logMsg = function (s) { $backscroll.val(function (i, v) { return v + '\n' + s; }); };
 
-    var onLeaving = function(msg) {
-        logMsg('* ' + msg[1] + ' has left ' + msg[4]);
+    var onLeaving = function(peer, channel) {
+        logMsg('* ' + peer.name + ' has left ' + channel.id);
     }
 
-    var onJoining = function(msg) {
-        logMsg('* ' + msg[1] + ' has joined');
+    var onJoining = function(peer, channel) {
+        logMsg('* ' + peer.name + ' has joined');
     }
 
-    var onMessage = function (msg) {
-        logMsg('<' + msg[1] + '> ' + msg[4]);
-    };
-
-    var send = function (msg, cb) {
-        if(typeof webchannel !== "undefined") {
-            webchannel.send(msg);
-            cb();
-        }
-        else {
-            cb("Not connected to server");
-        }
+    var onMessage = function (peer, channel, msg) {
+        logMsg('<' + peer.name + '> ' + msg[4]);
     };
 
     var main = function () {
