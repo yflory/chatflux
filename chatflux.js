@@ -4,7 +4,6 @@ require(['nf_websocketservice.js',
     var $ = window.jQuery;
 
     var $backscroll
-    var webchannel;
 
     var connect = function (url) {
         var channel = window.location.hash.substring(1) || null;
@@ -13,20 +12,19 @@ require(['nf_websocketservice.js',
             // Connect to the WebSocket server
             Netflux.connect(url).then(function(facade) {
 
-                facade.onMessage = onMessage;
-                facade.onJoining = onJoining;
-                facade.onLeaving = onLeaving;
                 facade.onPeerMessage = onPeerMessage;
 
                 // Join a WebChannel
                 facade.join(channel).then(function(wc) {
 
-                    webchannel = wc;
+                    wc.onMessage = onMessage;
+                    wc.onJoining = onJoining;
+                    wc.onLeaving = onLeaving;
 
-                    // Request the history of this channel.
-
-                    facade._connector.send('_HISTORY_KEEPER_',
-                        JSON.stringify(['GET_HISTORY', wc.id]));
+                    // Request the history of this channel from the peer with the best link quality
+                    var hc;
+                    wc.peers.forEach(function (p) { if (!hc || p.linkQuality > hc.linkQuality) { hc = p; } });
+                    hc.send(JSON.stringify(['GET_HISTORY', wc.id]));
 
                     resolve(wc);
 
