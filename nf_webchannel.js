@@ -27,7 +27,8 @@ define(function () {
         return {
             id: name,
             send: function(message) { return send(connect, name, message); },
-            leave: function() { return leave(connect); }
+            leave: function() { return leave(connect); },
+            peers: []
         }
     }
     return {
