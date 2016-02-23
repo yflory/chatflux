@@ -1,8 +1,8 @@
 define(function () {
 
-    var send = function(connector, channelId, message) {
+    var send = function(connector, peerId, message) {
         return new Promise(function(resolve, reject) {
-            connector.send(channelId, message).then(function() {
+            connector.send(peerId, message).then(function() {
                 resolve();
             }, function(error) {
                 reject(error);
@@ -10,13 +10,12 @@ define(function () {
         });
     }
 
-    var create = function(name, webchannel, connect) {
-        var id = name;
-        var webchannel = webchannel;
-        var connector = connect;
+    var create = function(name, webchannel, connect, linkQuality) {
         return {
-            send: function(message) { return send(connector, id, message); },
-            name: name
+            send: function(message) { return send(connect, name, message); },
+            name: name,
+            webchannel: webchannel,
+            linkQuality: (linkQuality || 0)
         }
     }
     return {

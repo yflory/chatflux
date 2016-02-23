@@ -23,8 +23,11 @@ define(function () {
         });
     }
 
-    var create = function(name, connect) {
+    var create = function(name, connect, facade) {
         return {
+            onMessage: function(peer, channel, msg) { return facade.onMessage(peer, channel, msg); },
+            onLeaving: function(peer, channel) { return facade.onLeaving(peer, channel); },
+            onJoining: function(peer, channel) { return facade.onJoining(peer, channel); },
             id: name,
             send: function(message) { return send(connect, name, message); },
             leave: function() { return leave(connect); },
