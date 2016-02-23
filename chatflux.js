@@ -35,7 +35,10 @@ require(['nf_websocketservice.js',
         });
     };
 
-    var logMsg = function (s) { $backscroll.val(function (i, v) { return v + '\n' + s; }); };
+    var logMsg = function (s) {
+            $backscroll.val(function (i, v) { return v + '\n' + s; });
+            $backscroll.scrollTop($backscroll[0].scrollHeight);
+        };
 
     var onLeaving = function(peer, channel) {
         logMsg('* ' + peer.name + ' has left ' + channel.id);
@@ -53,10 +56,6 @@ require(['nf_websocketservice.js',
         $backscroll = $('#chatflux-backscroll');
         var $entry = $('#chatflux-entry');
         var server = connect((''+window.location.href).replace('http','ws').replace(/#.*$/, ''));
-        var logMsg = function (s) {
-            $backscroll.val(function (i, v) { return v + '\n' + s; });
-            $backscroll.scrollTop($backscroll[0].scrollHeight);
-        };
 
         $entry.on('keydown', function (evt) {
             if (evt.keyCode !== 13) { return; }

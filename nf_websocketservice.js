@@ -26,16 +26,22 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
         delete this;
     }
 
-    var findPeerById = function(peerId, peers) {
-        var index;
+    var findPeerById = function(peerId, peers, wc) {
+        var index = -1;
         for(var i=0; i<peers.length; i++) {
             if(peers[i].name === peerId) {
                 index = i;
                 break;
             }
         }
-        var peer = peers[i] || Peer.create("Unknown", wc, module.exports); 
+        var peer = peers[i] || Peer.create('*'+peerId+'*', wc, module.exports); 
         return [peer, index];
+    }
+
+    var addPeerToChannel = function(peer, channel) {
+        if(channel && channel.peers.indexOf(peer) === -1) {
+            channel.peers.push(peer);
+        }
     }
 
     // Create a WebChannel
@@ -64,27 +70,41 @@ define(['/bower_components/reconnectingWebsocket/reconnecting-websocket.js',
                         sock.ws.send(JSON.stringify(msg));
                         return;
                     }
+                    // Someone has joined the channel
                     if (msg[2] === 'JOIN') {
+                        // Register him in the list of peers in the channel
                         var peer = Peer.create(msg[1], wc, module.exports);
-                        wc.peers.push(peer);
+                        addPeerToChannel(peer, wc);
+                        // If the user catches himself registering, it means he knows all other peers
+                        // and he is synchronized with the server
                         if (msg[1] === sock.uid) {
                             chanName = window.location.hash = msg[3];
                             wc.id = chanName;
                             resolve(wc);
                             console.log('joined');
                         }
+                        // Trigger onJoining() when another user is joining the channel
                         else {
                             if(wc && typeof wc.onJoining !== "undefined") { wc.onJoining(peer, wc); }
                         }
                     }
+                    // We have received a new message from another user
                     if (msg[2] === 'MSG') {
-                        var peer = findPeerById(msg[1], wc.peers);
+                        // If it comes from the history keeper (we've just entered the channel),
+                        // then get the original message
+                        if(msg[1] === '_HISTORY_KEEPER_') {
+                            msg = JSON.parse(msg[4]);
+                        }
+                        // Find the peer who sent the message or create a fake one if he doesn't exist anymore
+                        var peer = findPeerById(msg[1], wc.peers, wc);
                         console.log("MSG " + JSON.stringify(msg));
+                        // Trigger onMessage() in the channel
                         if(wc && typeof wc.onMessage !== "undefined") { wc.onMessage(peer[0], wc, msg); }
                     }
+                    // If someone else has left the channel, remove him from the list of peers
                     if (msg[2] === 'LEAVE') {
-                        var peer = findPeerById(msg[1], wc.peers);
-                        if(peer[1]) {
+                        var peer = findPeerById(msg[1], wc.peers, wc);
+                        if(peer[1] >= 0) {
                             wc.peers.splice(peer[1], 1);
                         }
                         console.log("LEAVE " + JSON.stringify(msg));
