@@ -1,36 +1,36 @@
 /* globals window, WebSocket */
-require(['nf_websocketservice.js',
+require(['netflux.js',
         './bower_components/jquery/dist/jquery.js'], function (Netflux) {
     var $ = window.jQuery;
 
     var $backscroll
 
     var connect = function (url) {
+      
+        Netflux._onPeerMessage = onPeerMessage;
         var channel = window.location.hash.substring(1) || null;
+        
+        var options = {
+          signaling: url,
+          topology: 'WSService',
+          protocol: 'WSProtocolService',
+          connector: 'WebSocketService'
+        };
 
         return new Promise(function(resolve, reject) {
             // Connect to the WebSocket server
-            Netflux.connect(url).then(function(facade) {
+            // Join a WebChannel
+            Netflux.join(channel, options).then(function(wc) {
+                wc.onMessage = onMessage;
+                wc.onJoining = onJoining;
+                wc.onLeaving = onLeaving;
 
-                facade.onPeerMessage = onPeerMessage;
+                // Request the history of this channel from the peer with the best link quality
+                var hc;
+                wc.peers.forEach(function (p) { if (!hc || p.linkQuality > hc.linkQuality) { hc = p; } });
+                hc.send(JSON.stringify(['GET_HISTORY', wc.id]));
 
-                // Join a WebChannel
-                facade.join(channel).then(function(wc) {
-
-                    wc.onMessage = onMessage;
-                    wc.onJoining = onJoining;
-                    wc.onLeaving = onLeaving;
-
-                    // Request the history of this channel from the peer with the best link quality
-                    var hc;
-                    wc.peers.forEach(function (p) { if (!hc || p.linkQuality > hc.linkQuality) { hc = p; } });
-                    hc.send(JSON.stringify(['GET_HISTORY', wc.id]));
-
-                    resolve(wc);
-
-                }, function(error) {
-                    reject(error);
-                });
+                resolve(wc);
 
             }, function(error) {
                 reject(error);
@@ -43,25 +43,25 @@ require(['nf_websocketservice.js',
         $backscroll.scrollTop($backscroll[0].scrollHeight);
     };
 
-    var onLeaving = function(peer, channel) {
-        logMsg('* ' + peer.name + ' has left');
+    var onLeaving = function(peer) {
+        logMsg('* ' + peer + ' has left');
     }
 
-    var onJoining = function(peer, channel) {
-        logMsg('* ' + peer.name + ' has joined');
+    var onJoining = function(peer) {
+        logMsg('* ' + peer + ' has joined');
     }
 
-    var onMessage = function (peer, channel, msg) {
-        logMsg('<' + peer.name + '> ' + msg[4]);
+    var onMessage = function (peer, msg) {
+        logMsg('<' + peer + '> ' + msg);
     };
 
     var onPeerMessage = function (peer, msg) {
-        if(peer.name === '_HISTORY_KEEPER_') {
+        if(peer === '_HISTORY_KEEPER_') {
             var msgHistory = JSON.parse(msg[4]);
             logMsg('*' + msgHistory[1] + '* ' + msgHistory[4]);
         }
         else {
-            logMsg('' + peer.name + '>> ' + msg[4]);
+            logMsg('' + peer + '>> ' + msg[4]);
         }
     };
 
@@ -70,7 +70,7 @@ require(['nf_websocketservice.js',
         var index = -1;
         var peers = wc.peers;
         for(var i=0; i<peers.length; i++) {
-            if(peers[i].name === peerId) {
+            if(peers[i].id === peerId) {
                 index = i;
                 break;
             }
@@ -92,7 +92,7 @@ require(['nf_websocketservice.js',
                     if(peer) {
                         msg = msg.substr(splitUser+1);
                         peer.send(msg);
-                        logMsg('' + peer.name + '<< ' + msg);
+                        logMsg('' + peer.id + '<< ' + msg);
                     }
                 }
             }
@@ -107,7 +107,8 @@ require(['nf_websocketservice.js',
     };
 
     var main = function () {
-        $backscroll = $('#chatflux-backscroll');
+
+      $backscroll = $('#chatflux-backscroll');
         var $entry = $('#chatflux-entry');
         connect((''+window.location.href).replace('http','ws').replace(/#.*$/, '')).then(function(wc){
             $entry.on('keydown', function (evt) {
@@ -123,7 +124,8 @@ require(['nf_websocketservice.js',
         }, function(err) {
             logMsg('ERROR: ' + err);
             console.error(err);
-        });  
+        });
+        
     };
     main();
 });
