@@ -317,9 +317,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	var WEBRTC_SERVICE = exports.WEBRTC_SERVICE = 'WebRTCService';
 	var WEBSOCKET_SERVICE = exports.WEBSOCKET_SERVICE = 'WebSocketService';
 	var FULLYCONNECTED_SERVICE = exports.FULLYCONNECTED_SERVICE = 'FullyConnectedService';
-	var WS_SERVICE = exports.WS_SERVICE = 'WSService';
+	var STAR_SERVICE = exports.STAR_SERVICE = 'StarTopologyService';
 	var EXCHANGEPROTOCOL_SERVICE = exports.EXCHANGEPROTOCOL_SERVICE = 'ExchangeProtocolService';
-	var WSPROTOCOL_SERVICE = exports.WSPROTOCOL_SERVICE = 'WSProtocolService';
+	var WSPROTOCOL_SERVICE = exports.WSPROTOCOL_SERVICE = 'WebSocketProtocolService';
 
 /***/ },
 /* 4 */
@@ -341,9 +341,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _FullyConnectedService2 = _interopRequireDefault(_FullyConnectedService);
 
-	var _WSService = __webpack_require__(6);
+	var _StarTopologyService = __webpack_require__(6);
 
-	var _WSService2 = _interopRequireDefault(_WSService);
+	var _StarTopologyService2 = _interopRequireDefault(_StarTopologyService);
 
 	var _WebRTCService = __webpack_require__(7);
 
@@ -357,9 +357,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _ExchangeProtocolService2 = _interopRequireDefault(_ExchangeProtocolService);
 
-	var _WSProtocolService = __webpack_require__(10);
+	var _WebSocketProtocolService = __webpack_require__(10);
 
-	var _WSProtocolService2 = _interopRequireDefault(_WSProtocolService);
+	var _WebSocketProtocolService2 = _interopRequireDefault(_WebSocketProtocolService);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -390,14 +390,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	        case cs.FULLYCONNECTED_SERVICE:
 	          service = new _FullyConnectedService2.default(options);
 	          break;
-	        case cs.WS_SERVICE:
-	          service = new _WSService2.default(options);
+	        case cs.STAR_SERVICE:
+	          service = new _StarTopologyService2.default(options);
 	          break;
 	        case cs.EXCHANGEPROTOCOL_SERVICE:
 	          service = new _ExchangeProtocolService2.default(options);
 	          break;
 	        case cs.WSPROTOCOL_SERVICE:
-	          service = new _WSProtocolService2.default(options);
+	          service = new _WebSocketProtocolService2.default(options);
 	          break;
 	      }
 	      services.set(code, service);
@@ -596,14 +596,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var WSService = function () {
-	  function WSService() {
+	var StarTopologyService = function () {
+	  function StarTopologyService() {
 	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-	    _classCallCheck(this, WSService);
+	    _classCallCheck(this, StarTopologyService);
 	  }
 
-	  _createClass(WSService, [{
+	  _createClass(StarTopologyService, [{
 	    key: "broadcast",
 	    value: function broadcast(webChannel, data) {
 	      var _iteratorNormalCompletion = true;
@@ -663,10 +663,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  }]);
 
-	  return WSService;
+	  return StarTopologyService;
 	}();
 
-	exports.default = WSService;
+	exports.default = StarTopologyService;
 
 /***/ },
 /* 7 */
@@ -1180,24 +1180,23 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var WSProtocolService = function () {
-	  function WSProtocolService() {
+	var WebSocketProtocolService = function () {
+	  function WebSocketProtocolService() {
 	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
 
-	    _classCallCheck(this, WSProtocolService);
+	    _classCallCheck(this, WebSocketProtocolService);
 	  }
 
-	  _createClass(WSProtocolService, [{
+	  _createClass(WebSocketProtocolService, [{
 	    key: 'onmessage',
 	    value: function onmessage(e) {
 	      var msg = JSON.parse(e.data);
 	      var socket = e.currentTarget;
 	      var webChannel = socket.webChannel;
-	      var topology = cs.WS_SERVICE;
+	      var topology = cs.STAR_SERVICE;
 	      var topologyService = _ServiceProvider2.default.get(topology);
 
 	      if (msg[0] !== 0) {
-	        console.log(JSON.stringify(msg));
 	        return;
 	      }
 	      if (msg[1] === 'IDENT') {
@@ -1211,9 +1210,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        socket.send(JSON.stringify(msg));
 	        return;
 	      }
-	      if (msg[2] === 'MSG') {
-	        console.log("MSG " + JSON.stringify(msg));
-	      }
+	      if (msg[2] === 'MSG') {}
 	      // We have received a new direct message from another user
 	      if (msg[2] === 'MSG' && msg[3] === socket.uid) {
 	        // Find the peer exists in one of our channels or create a new one
@@ -1222,22 +1219,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if (msg[2] === 'JOIN' && (webChannel.id == null || webChannel.id === msg[3])) {
 	        if (!webChannel.id) {
 	          // New unnamed channel : get its name from the first "JOIN" message
-	          var chanName = window.location.hash = msg[3];
-	          webChannel.id = chanName;
+	          if (!window.location.hash) {
+	            var chanName = window.location.hash = msg[3];
+	          }
+	          webChannel.id = msg[3];
 	        }
 
 	        if (msg[1] === socket.uid) {
 	          // If the user catches himself registering, he is synchronized with the server
 	          webChannel.onopen();
-	          console.log('joined');
 	        } else {
 	          // Trigger onJoining() when another user is joining the channel
 
 	          // Register the user in the list of peers in the channel
 	          var linkQuality = msg[1] === '_HISTORY_KEEPER_' ? 1000 : 0;
 	          var sendToPeer = function sendToPeer(data) {
-	            console.log('sendToPeer' + msg[1]);
-	            console.log(data);
 	            topologyService.sendTo(msg[1], webChannel, { type: 'MSG', msg: data });
 	          };
 	          var peer = { id: msg[1], connector: socket, linkQuality: linkQuality, send: sendToPeer };
@@ -1245,11 +1241,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	            webChannel.peers.push(peer);
 	          }
 
-	          console.log("onJoining");
 	          if (typeof webChannel.onJoining === "function") webChannel.onJoining(msg[1]);
 	        }
 	      }
-	      // We have received a new message in that channel
+	      // We have received a new message in that channel from another peer
 	      if (msg[2] === 'MSG' && msg[3] === webChannel.id) {
 	        // Find the peer who sent the message and display it
 	        //TODO Use Peer instead of peer.id (msg[1]) :
@@ -1259,7 +1254,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if (msg[2] === 'LEAVE' && msg[3] === webChannel.id) {
 	        //TODO Use Peer instead of peer.id (msg[1]) :
 	        if (typeof webChannel.onLeaving === "function") webChannel.onLeaving(msg[1], webChannel);
-	        console.log("LEAVE " + JSON.stringify(msg));
 	      }
 	    }
 	  }, {
@@ -1270,28 +1264,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	        case cs.USER_DATA:
 	          type = 'MSG';
 	          break;
-	        /*case cs.SERVICE_DATA:
-	          msg.service = data.service
-	          msg.data = Object.assign({}, data.data)
-	          break
-	        case cs.YOUR_NEW_ID:
-	          type = 'JOIN'
-	          break*/
 	        case cs.JOIN_START:
 	          type = 'JOIN';
 	          break;
-	        /*case cs.JOIN_FINISH:
-	          msg.id = data
-	          break*/
 	      }
 	      return { type: type, msg: data.data };
 	    }
 	  }]);
 
-	  return WSProtocolService;
+	  return WebSocketProtocolService;
 	}();
 
-	exports.default = WSProtocolService;
+	exports.default = WebSocketProtocolService;
 
 /***/ }
 /******/ ])

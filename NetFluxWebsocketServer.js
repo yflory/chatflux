@@ -75,10 +75,10 @@ let handleMessage = function (ctx, user, msg) {
     user.pingOutstanding = false;
 
     if (cmd === 'JOIN') {
-        if (obj && obj.length !== 32) {
+        /*if (obj && obj.length !== 32) {
             sendMsg(ctx, user, [seq, 'ERROR', 'ENOENT', obj]);
             return;
-        }
+        }*/
         let chanName = obj || randName();
         let chan = ctx.channels[chanName] = ctx.channels[chanName] || [];
         chan.id = chanName;

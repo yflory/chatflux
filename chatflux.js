@@ -12,8 +12,8 @@ require(['netflux.js',
         
         var options = {
           signaling: url,
-          topology: 'WSService',
-          protocol: 'WSProtocolService',
+          topology: 'StarTopologyService',
+          protocol: 'WebSocketProtocolService',
           connector: 'WebSocketService'
         };
 
